@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="わくわく管理">
+  <title>わくわくの実 管理アプリ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      color: #e2e8f0;
+    }
+
+    /* ヘッダー */
+    header {
+      background: rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding-top: env(safe-area-inset-top);
+    }
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { font-size: 32px; }
+    .logo-title { font-size: 18px; font-weight: 700; color: #fbbf24; letter-spacing: 1px; }
+    .logo-sub { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+
+    .add-btn {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 20px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245,158,11,0.4);
+      white-space: nowrap;
+    }
+    .add-btn:active { opacity: 0.85; transform: scale(0.97); }
+
+    /* メイン */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 16px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+
+    /* 検索・フィルター */
+    .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-input {
+      flex: 1;
+      min-width: 150px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #e2e8f0;
+      font-size: 14px;
+      outline: none;
+    }
+    .search-input::placeholder { color: #64748b; }
+    select {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #e2e8f0;
+      font-size: 13px;
+      outline: none;
+      max-width: 160px;
+    }
+    select option, select optgroup { background: #1e293b; color: #e2e8f0; }
+
+    /* サマリー */
+    .summary {
+      background: rgba(251,191,36,0.1);
+      border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      display: none;
+    }
+    .summary.visible { display: block; }
+    .summary-label { color: #fbbf24; font-weight: 600; }
+    .summary-names { color: #e2e8f0; margin-left: 6px; }
+
+    /* 空メッセージ */
+    .empty {
+      text-align: center;
+      color: #64748b;
+      font-size: 15px;
+      margin-top: 60px;
+      line-height: 2;
+    }
+
+    /* グリッド */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    /* カード */
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 14px 16px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .monster-name { font-weight: 700; font-size: 15px; color: #f1f5f9; }
+    .card-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: 8px; }
+
+    .edit-btn {
+      background: rgba(59,130,246,0.2);
+      border: 1px solid rgba(59,130,246,0.4);
+      color: #93c5fd;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .del-btn {
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .edit-btn:active, .del-btn:active { opacity: 0.75; }
+
+    .slots { display: flex; flex-wrap: wrap; gap: 6px; }
+    .no-slot { color: #475569; font-size: 13px; }
+    .slot-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(251,191,36,0.12);
+      border: 1px solid rgba(251,191,36,0.25);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 12px;
+    }
+    .fruit-name { color: #fde68a; font-weight: 600; }
+    .fruit-note { color: #94a3b8; font-size: 11px; }
+
+    /* モーダル */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 200;
+      padding: 0;
+    }
+    .modal {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal-handle {
+      width: 40px;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+    .modal-title { font-size: 18px; font-weight: 700; color: #fbbf24; margin-bottom: 18px; }
+
+    label.field-label {
+      display: block;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .modal-input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #e2e8f0;
+      font-size: 16px; /* iOS zoom対策 */
+      outline: none;
+      margin-bottom: 18px;
+    }
+
+    .slot-row { display: flex; gap: 6px; margin-bottom: 8px; align-items: center; }
+    .slot-select {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 9px 8px;
+      color: #e2e8f0;
+      font-size: 16px; /* iOS zoom対策 */
+      outline: none;
+      min-width: 0;
+    }
+    .slot-note {
+      width: 90px;
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 9px 8px;
+      color: #e2e8f0;
+      font-size: 16px; /* iOS zoom対策 */
+      outline: none;
+    }
+    .remove-btn {
+      background: rgba(239,68,68,0.15);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .add-slot-btn {
+      background: rgba(251,191,36,0.1);
+      border: 1px dashed rgba(251,191,36,0.4);
+      color: #fbbf24;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 4px;
+      margin-bottom: 20px;
+    }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; }
+    .cancel-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #94a3b8;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .save-btn {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(245,158,11,0.4);
+    }
+    .save-btn:active, .cancel-btn:active, .add-slot-btn:active { opacity: 0.8; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-icon">🍎</span>
+      <div>
+        <div class="logo-title">わくわくの実</div>
+        <div class="logo-sub">管理アプリ</div>
+      </div>
+    </div>
+    <button class="add-btn" onclick="openAdd()">＋ 追加</button>
+  </div>
+</header>
+
+<main>
+  <div class="filter-row">
+    <input class="search-input" type="text" id="searchInput" placeholder="🔍 モンスター名で検索..." oninput="render()">
+    <select id="fruitFilter" onchange="render()">
+      <option value="">すべての実</option>
+    </select>
+  </div>
+
+  <div class="summary" id="summary">
+    <span class="summary-label" id="summaryLabel"></span>
+    <span class="summary-names" id="summaryNames"></span>
+  </div>
+
+  <div id="listArea"></div>
+</main>
+
+<!-- モーダル -->
+<div class="overlay hidden" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTitle">モンスターを追加</div>
+
+    <label class="field-label">モンスター名</label>
+    <input class="modal-input" type="text" id="formName" placeholder="例：獣神化◯◯">
+
+    <label class="field-label">付けている実（スロット）</label>
+    <div id="slotsContainer"></div>
+    <button class="add-slot-btn" onclick="addSlot()">＋ スロット追加</button>
+
+    <div class="modal-footer">
+      <button class="cancel-btn" onclick="closeModal()">キャンセル</button>
+      <button class="save-btn" onclick="saveMonster()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== データ =====
+const FRUIT_CATEGORIES = [
+  { category: "同族の絆", fruits: ["同族の絆・加撃","同族の絆・加速","同族の絆・加命","同族の絆・加撃速","同族の絆・加速命","同族の絆・加命撃"] },
+  { category: "撃種の絆", fruits: ["撃種の絆・加撃","撃種の絆・加速","撃種の絆・加命","撃種の絆・加撃速","撃種の絆・加速命","撃種の絆・加命撃"] },
+  { category: "戦型の絆", fruits: ["戦型の絆・加撃","戦型の絆・加速","戦型の絆・加命","戦型の絆・加撃速","戦型の絆・加速命","戦型の絆・加命撃"] },
+  { category: "各種能力", fruits: ["熱き友撃の力","一撃失心の力","将命削りの力","兵命削りの力","速必殺の力","ケガ減りの力","ちび癒しの力","スコア稼ぎの力","学びの力","荒稼ぎの力"] },
+];
+
+const STORAGE_KEY = "monst_wakuwaku_v1";
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+}
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(monsters));
+}
+
+let monsters = loadData();
+let editingId = null;
+let formSlots = [];
+
+// ===== セレクト初期化 =====
+function buildFruitOptions(selectEl, withEmpty) {
+  if (withEmpty) selectEl.innerHTML = '<option value="">すべての実</option>';
+  else selectEl.innerHTML = '<option value="">-- 実を選ぶ --</option>';
+  FRUIT_CATEGORIES.forEach(cat => {
+    const og = document.createElement('optgroup');
+    og.label = cat.category;
+    cat.fruits.forEach(f => {
+      const o = document.createElement('option');
+      o.value = f; o.textContent = f;
+      og.appendChild(o);
+    });
+    selectEl.appendChild(og);
+  });
+}
+buildFruitOptions(document.getElementById('fruitFilter'), true);
+
+// ===== レンダリング =====
+function render() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const fruitFilter = document.getElementById('fruitFilter').value;
+
+  // サマリー
+  const summary = document.getElementById('summary');
+  if (fruitFilter) {
+    const names = monsters.filter(m => m.slots.some(s => s.fruit === fruitFilter)).map(m => m.name);
+    if (names.length > 0) {
+      document.getElementById('summaryLabel').textContent = `「${fruitFilter}」を付けているモンスター：`;
+      document.getElementById('summaryNames').textContent = names.join('、');
+      summary.classList.add('visible');
+    } else {
+      summary.classList.remove('visible');
+    }
+  } else {
+    summary.classList.remove('visible');
+  }
+
+  const filtered = monsters.filter(m => {
+    const nameMatch = m.name.toLowerCase().includes(search);
+    const fruitMatch = !fruitFilter || m.slots.some(s => s.fruit === fruitFilter);
+    return nameMatch && fruitMatch;
+  });
+
+  const area = document.getElementById('listArea');
+  if (filtered.length === 0) {
+    area.innerHTML = `<div class="empty">${monsters.length === 0
+      ? 'まだモンスターが登録されていません。<br>「＋ 追加」から登録しましょう！'
+      : '条件に一致するモンスターがいません。'}</div>`;
+    return;
+  }
+
+  area.innerHTML = `<div class="grid">${filtered.map(m => `
+    <div class="card">
+      <div class="card-header">
+        <div class="monster-name">${esc(m.name)}</div>
+        <div class="card-actions">
+          <button class="edit-btn" onclick="openEdit('${m.id}')">編集</button>
+          <button class="del-btn" onclick="deleteMonster('${m.id}')">削除</button>
+        </div>
+      </div>
+      <div class="slots">
+        ${m.slots.length === 0
+          ? '<span class="no-slot">実なし</span>'
+          : m.slots.map(s => `
+            <div class="slot-badge">
+              <span>🍎</span>
+              <span class="fruit-name">${esc(s.fruit)}</span>
+              ${s.note ? `<span class="fruit-note">（${esc(s.note)}）</span>` : ''}
+            </div>`).join('')}
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===== モーダル =====
+function openAdd() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'モンスターを追加';
+  document.getElementById('formName').value = '';
+  formSlots = [{ fruit: '', note: '' }];
+  renderSlots();
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('formName').focus();
+}
+
+function openEdit(id) {
+  const m = monsters.find(x => x.id === id);
+  if (!m) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'モンスターを編集';
+  document.getElementById('formName').value = m.name;
+  formSlots = m.slots.map(s => ({ ...s }));
+  if (formSlots.length === 0) formSlots = [{ fruit: '', note: '' }];
+  renderSlots();
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+function renderSlots() {
+  const container = document.getElementById('slotsContainer');
+  container.innerHTML = formSlots.map((s, i) => `
+    <div class="slot-row">
+      <select class="slot-select" id="slot_fruit_${i}" onchange="updateSlot(${i},'fruit',this.value)"></select>
+      <input class="slot-note" type="text" id="slot_note_${i}" placeholder="メモ" value="${esc(s.note)}" oninput="updateSlot(${i},'note',this.value)">
+      <button class="remove-btn" onclick="removeSlot(${i})">✕</button>
+    </div>`).join('');
+  formSlots.forEach((s, i) => {
+    const sel = document.getElementById(`slot_fruit_${i}`);
+    buildFruitOptions(sel, false);
+    sel.value = s.fruit;
+  });
+}
+
+function addSlot() {
+  formSlots.push({ fruit: '', note: '' });
+  renderSlots();
+}
+
+function removeSlot(i) {
+  formSlots.splice(i, 1);
+  if (formSlots.length === 0) formSlots = [{ fruit: '', note: '' }];
+  renderSlots();
+}
+
+function updateSlot(i, field, val) {
+  formSlots[i][field] = val;
+}
+
+function saveMonster() {
+  const name = document.getElementById('formName').value.trim();
+  if (!name) { document.getElementById('formName').focus(); return; }
+  const slots = formSlots.filter(s => s.fruit);
+  if (editingId) {
+    const idx = monsters.findIndex(m => m.id === editingId);
+    if (idx !== -1) monsters[idx] = { ...monsters[idx], name, slots };
+  } else {
+    monsters.push({ id: `id_${Date.now()}`, name, slots });
+  }
+  saveData();
+  closeModal();
+  render();
+}
+
+function deleteMonster(id) {
+  if (!confirm('削除しますか？')) return;
+  monsters = monsters.filter(m => m.id !== id);
+  saveData();
+  render();
+}
+
+// ===== 初期表示 =====
+render();
+</script>
+</body>
+</html>
